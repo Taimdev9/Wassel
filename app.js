@@ -17,6 +17,22 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// ================== Updates Modal Logic ==================
+const updateModal = document.getElementById('update-modal');
+const btnCloseModal = document.getElementById('btn-close-modal');
+
+// Show modal only if user hasn't seen v2.0
+if (!localStorage.getItem('wassel_v2_update')) {
+  setTimeout(() => {
+    updateModal.classList.remove('hidden');
+  }, 1000); // Show after splash screen fades mostly
+}
+
+btnCloseModal.addEventListener('click', () => {
+  updateModal.classList.add('hidden');
+  localStorage.setItem('wassel_v2_update', 'true');
+});
+
 // ================== Splash Screen ==================
 const splashScreen = document.getElementById('splash-screen');
 const mainApp = document.getElementById('main-app');
@@ -46,42 +62,42 @@ const translations = {
     host_title: 'Target Device', host_desc: 'Generates a code to be connected to',
     viewer_title: 'Controller Device', viewer_desc: 'Enter code to view/control the device',
     host_screen_title: 'You are the Target', host_screen_desc: 'Give this code to the controller:',
-    waiting: 'Waiting for connection...', stop_sharing: 'Stop Sharing',
+    waiting: 'Waiting for connection...', stop_sharing: 'Stop',
     viewer_screen_title: 'You are the Controller', enter_code: 'Enter the 6-digit code:',
     connect_btn: 'Connect', disconnect: 'Disconnect', back_btn: 'Back',
     invalid_code: 'Enter a 6-digit code', no_device: '❌ No device found',
     connected: '✓ Connected', connecting: 'Connecting...', failed: 'Connection failed',
     disconnected: 'Disconnected', copied: 'Copied ✓', sharing_now: 'Sharing now',
     success_title: 'Connected!', success_status: 'Now', success_desc: 'Devices are linked.',
-    send_media: '📁 Send Image/Video', received_media: 'Received Media',
+    send_media: 'Send File', received_media: 'Received Media', cast_btn: 'Cast to TV',
     lang_btn: 'عربي',
     compat_mode: 'Compatibility Mode (PS4/TV)',
     mobile_warn: "Mobile browsers don't support live screen sharing.\nDo you want to open the room to send media only?",
     media_only_connected: "Connected (Media Only)",
     err_not_connected: "Connection is not ready yet. Wait a moment.",
     timeout_err: "Connection timed out. Your network is blocking the connection.",
-    no_webrtc: "❌ Your browser (like PS4) does not support WebRTC. Please enable Compatibility Mode on the Host device."
+    no_webrtc: "❌ Your browser (like PS4) does not support WebRTC. Please enable Compatibility Mode."
   },
   ar: {
     dir: 'rtl', app_title: 'واصل', app_subtitle: 'اختر دور جهازك',
     host_title: 'الجهاز المتصل به', host_desc: 'يظهر كود لكي يتم الاتصال به',
     viewer_title: 'جهاز التحكم', viewer_desc: 'أدخل الكود للتحكم/المشاهدة',
     host_screen_title: 'أنت الجهاز المتصل به', host_screen_desc: 'أعطِ هذا الكود لجهاز التحكم:',
-    waiting: 'بانتظار اتصال جهاز التحكم...', stop_sharing: 'إيقاف المشاركة',
+    waiting: 'بانتظار اتصال جهاز التحكم...', stop_sharing: 'إيقاف',
     viewer_screen_title: 'أنت جهاز التحكم', enter_code: 'أدخل الكود المكوّن من 6 أرقام:',
     connect_btn: 'اتصال', disconnect: 'قطع الاتصال', back_btn: 'رجوع',
     invalid_code: 'أدخل كوداً من 6 أرقام', no_device: '❌ لا يوجد جهاز بهذا الكود',
     connected: '✓ متصل', connecting: 'جاري الاتصال...', failed: 'فشل الاتصال',
     disconnected: 'انقطع الاتصال', copied: 'تم النسخ ✓', sharing_now: 'جاري المشاركة',
     success_title: 'تم الاتصال!', success_status: 'الآن', success_desc: 'تم ربط الأجهزة بنجاح.',
-    send_media: '📁 إرسال صورة/فيديو', received_media: 'الوسائط المستلمة',
+    send_media: 'إرسال ملف', received_media: 'الوسائط المستلمة', cast_btn: 'بث للتلفزيون',
     lang_btn: 'English',
     compat_mode: 'وضع التوافق (للبلايستيشن والتلفاز)',
     mobile_warn: "متصفح الهاتف لا يدعم مشاركة الشاشة الحية.\nهل تريد فتح الغرفة لإرسال الصور والفيديوهات فقط؟",
     media_only_connected: "متصل (إرسال وسائط فقط)",
     err_not_connected: "لم يكتمل الاتصال بعد، انتظر لحظة.",
     timeout_err: "انتهت مهلة الاتصال. شبكتك تمنع الاتصال.",
-    no_webrtc: "❌ متصفحك (مثل البلايستيشن) لا يدعم البث المباشر. يرجى تفعيل (وضع التوافق) من جهاز الكمبيوتر."
+    no_webrtc: "❌ متصفحك لا يدعم البث المباشر. يرجى تفعيل (وضع التوافق) من الكمبيوتر."
   }
 };
 
@@ -119,6 +135,7 @@ const receivedMediaContainer = $('received-media-container');
 const receivedImage = $('received-image');
 const receivedVideo = $('received-video');
 const compatModeCheckbox = $('compat-mode');
+const btnCast = $('btn-cast');
 
 // ================== State ==================
 let pc = null;
@@ -128,7 +145,32 @@ let currentCode = null;
 let localStream = null;
 let pendingCandidates = [];
 let connectionTimeout = null;
-let compatInterval = null; // مؤقت وضع التوافق
+let compatInterval = null; 
+
+// ================== Google Cast Logic ==================
+window['__onGCastApiAvailable'] = function(isAvailable) {
+  if (isAvailable) {
+    cast.framework.CastContext.getInstance().setOptions({
+      receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+    });
+    btnCast.classList.remove('hidden');
+  }
+};
+
+btnCast.addEventListener('click', async () => {
+  try {
+    const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+    if (castSession) {
+      alert("Already casting! Open your media to send it to the TV.");
+    } else {
+      await cast.framework.CastContext.getInstance().requestSession();
+      alert("Connected to TV! Now send a video file.");
+    }
+  } catch (e) {
+    alert("Cast failed or cancelled: " + e.message);
+  }
+});
 
 // ================== Helpers ==================
 function showScreen(el) {
@@ -190,8 +232,6 @@ function showSuccessToast() {
 // ================== Host Logic ==================
 async function startHost() {
   const isCompatMode = compatModeCheckbox.checked;
-
-  // فحص دعم المتصفح لمشاركة الشاشة
   const supportsScreenShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 
   if (!supportsScreenShare) {
@@ -225,21 +265,18 @@ async function startHost() {
   hostStatus.textContent = translations[currentLang].waiting;
   showScreen(hostScreen);
 
-  // 🌟 إذا تم تفعيل وضع التوافق (للبلايستيشن)
   if (isCompatMode) {
     if (localStream) {
-      // إرسال لقطة شاشة كل ثانية
       compatInterval = setInterval(() => {
         const canvas = document.createElement('canvas');
-        canvas.width = 640; // تصغير الحجم لتقليل استهلاك البيانات
+        canvas.width = 640;
         canvas.height = 480;
         canvas.getContext('2d').drawImage(localVideo, 0, 0, 640, 480);
-        const base64 = canvas.toDataURL('image/jpeg', 0.3); // ضغط الصورة
+        const base64 = canvas.toDataURL('image/jpeg', 0.3);
         roomRef.child('compatFrame').set(base64);
-      }, 1000); // كل ثانية
+      }, 1000);
     }
   } else {
-    // 🌟 الوضع العادي (WebRTC)
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) videoTrack.onended = stopHost;
@@ -268,7 +305,6 @@ async function startHost() {
     });
   }
 
-  // مراقبة ما إذا انضم أحد للغرفة
   roomRef.child('viewerJoined').on('value', snap => {
     if (snap.val() === true) {
       hostStatus.textContent = isCompatMode ? translations[currentLang].connected : translations[currentLang].waiting;
@@ -313,10 +349,24 @@ $('btn-send-media').addEventListener('click', () => mediaInput.click());
 mediaInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  
+  // 🌟 دعم البث للتلفزيون إذا كان متصلاً (Google Cast)
+  const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+  if (castSession && (file.type.startsWith('video/') || file.type.startsWith('image/'))) {
+    // في حال كان هناك تلفزيون متصل، نبث الملف عليه مباشرة
+    const url = URL.createObjectURL(file);
+    const mediaInfo = new chrome.cast.media.MediaInfo(url, file.type);
+    const request = new chrome.cast.media.LoadRequest(mediaInfo);
+    castSession.loadMedia(request).then(
+      () => alert('Media sent to TV!'),
+      (errorCode) => alert('Error casting to TV: ' + errorCode)
+    );
+    // نستمر أيضاً في إرسالها للجهاز الآخر عبر التطبيق
+  }
+
   const isCompatMode = compatModeCheckbox.checked;
 
   if (isCompatMode) {
-    // إرسال عبر Firebase للبلايستيشن
     const reader = new FileReader();
     reader.onload = () => {
       if (reader.result.length > 1000000) {
@@ -327,7 +377,6 @@ mediaInput.addEventListener('change', async (e) => {
     };
     reader.readAsDataURL(file);
   } else {
-    // إرسال عبر WebRTC
     if (!dataChannel || dataChannel.readyState !== 'open') {
       alert(translations[currentLang].err_not_connected);
       return;
@@ -376,7 +425,6 @@ async function joinViewer() {
   joinSection.classList.add('hidden');
   videoSection.classList.remove('hidden');
 
-  // 🌟 وضع التوافق (للبلايستيشن)
   if (roomMode === 'compat') {
     statusEl.textContent = translations[currentLang].connected;
     remoteVideo.classList.add('hidden');
@@ -402,10 +450,9 @@ async function joinViewer() {
         }
       }
     });
-    return; // إنهاء الدالة هنا، لا حاجة لـ WebRTC
+    return; 
   }
 
-  // 🌟 الوضع العادي (WebRTC)
   if (typeof window.RTCPeerConnection === 'undefined') {
     statusEl.textContent = translations[currentLang].no_webrtc;
     return;
