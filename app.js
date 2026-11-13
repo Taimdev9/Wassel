@@ -23,7 +23,6 @@ const mainApp = document.getElementById('main-app');
 const btnContinue = document.getElementById('btn-continue');
 
 setTimeout(() => {
-  // إخفاء اللودر وإظهار الزر بعد 4 ثواني
   if (btnContinue) btnContinue.classList.remove('hidden');
 }, 4000); 
 
@@ -53,7 +52,10 @@ const translations = {
     disconnected: 'Disconnected', copied: 'Copied ✓', sharing_now: 'Sharing now',
     success_title: 'Connected!', success_status: 'Now', success_desc: 'Devices are linked.',
     send_media: '📁 Send Image/Video', received_media: 'Received Media',
-    lang_btn: 'عربي'
+    lang_btn: 'عربي',
+    // رسائل الموبايل
+    mobile_warn: "Your browser doesn't support screen sharing.\nDo you want to open the room to send images/videos only?",
+    mobile_warn_cancel: "Screen sharing failed or was cancelled.\nDo you want to continue to send images/videos only?"
   },
   ar: {
     dir: 'rtl', app_title: 'واصل', app_subtitle: 'اختر دور جهازك',
@@ -68,7 +70,10 @@ const translations = {
     disconnected: 'انقطع الاتصال', copied: 'تم النسخ ✓', sharing_now: 'جاري المشاركة',
     success_title: 'تم الاتصال!', success_status: 'الآن', success_desc: 'تم ربط الأجهزة بنجاح.',
     send_media: '📁 إرسال صورة/فيديو', received_media: 'الوسائط المستلمة',
-    lang_btn: 'English'
+    lang_btn: 'English',
+    // رسائل الموبايل
+    mobile_warn: "متصفحك لا يدعم مشاركة الشاشة الحية.\nهل تريد فتح الغرفة لإرسال صور وفيديوهات فقط؟",
+    mobile_warn_cancel: "تم إلغاء مشاركة الشاشة.\nهل تريد الاستمرار لإرسال صور وفيديوهات فقط؟"
   }
 };
 
@@ -168,18 +173,31 @@ function showSuccessToast() {
   setTimeout(() => toast.classList.add('hidden'), 5000);
 }
 
-// ================== Host Logic ==================
+// ================== Host Logic (Modified for Mobile Support) ==================
 async function startHost() {
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
-  } catch (err) {
-    alert('Could not access screen: ' + err.message);
-    return;
+  let stream = null;
+
+  // التحقق من دعم المتصفح
+  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      localStream = stream;
+      localVideo.srcObject = stream;
+      localVideo.classList.remove('hidden'); // إظهار الفيديو لو اشتغل
+    } catch (err) {
+      // المستخدم ضغط إلغاء أو حصل خطأ
+      const proceed = confirm(translations[currentLang].mobile_warn_cancel);
+      if (!proceed) return;
+      localVideo.classList.add('hidden'); // إخفاء الفيديو
+    }
+  } else {
+    // المتصفح لا يدعم مشاركة الشاشة (موبايل)
+    const proceed = confirm(translations[currentLang].mobile_warn);
+    if (!proceed) return;
+    localVideo.classList.add('hidden'); // إخفاء الفيديو
   }
 
-  localStream = stream;
-  localVideo.srcObject = stream;
+  // إنشاء الغرفة
   currentCode = generateCode();
   roomRef = db.ref('rooms/' + currentCode);
 
@@ -188,7 +206,7 @@ async function startHost() {
     roomRef.onDisconnect().remove();
   } catch (err) {
     alert('Firebase Error:\n' + err.message);
-    localStream.getTracks().forEach(t => t.stop());
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
     localStream = null; roomRef = null;
     return;
   }
@@ -197,8 +215,10 @@ async function startHost() {
   hostStatus.textContent = translations[currentLang].waiting;
   showScreen(hostScreen);
 
-  const videoTrack = localStream.getVideoTracks()[0];
-  if (videoTrack) videoTrack.onended = stopHost;
+  if (localStream) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) videoTrack.onended = stopHost;
+  }
 
   roomRef.child('viewerJoined').on('value', async snap => {
     if (snap.val() === true && !pc) {
@@ -225,15 +245,19 @@ async function startHost() {
 
 async function createHostConnection() {
   pc = createPeerConnection('host');
-  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  
+  // إضافة مسار الفيديو فقط إذا كان موجوداً (كمبيوتر)
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
 
-  // إنشاء قناة البيانات لنقل الملفات
+  // إنشاء قناة البيانات لنقل الملفات (تعمل على الكمبيوتر والموبايل)
   dataChannel = pc.createDataChannel("fileTransfer");
   dataChannel.binaryType = "arraybuffer";
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') {
-      hostStatus.textContent = translations[currentLang].sharing_now;
+      hostStatus.textContent = localStream ? translations[currentLang].sharing_now : translations[currentLang].connected;
       showSuccessToast(); 
     } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
       hostStatus.textContent = translations[currentLang].disconnected;
@@ -250,6 +274,7 @@ function stopHost() {
   if (roomRef) { try { roomRef.remove(); } catch (e) {} }
   cleanupConnection();
   localStream = null; localVideo.srcObject = null; currentCode = null;
+  localVideo.classList.remove('hidden'); // إعادة ضبط الحالة
   showScreen(chooseScreen);
 }
 
@@ -289,7 +314,7 @@ mediaInput.addEventListener('change', async (e) => {
     }
   };
   readSlice(file);
-  mediaInput.value = ''; // تفريغ الحقل للسماح بإرسال ملف آخر
+  mediaInput.value = ''; 
 });
 
 // ================== Viewer Logic ==================
@@ -311,7 +336,6 @@ async function joinViewer() {
   roomRef = db.ref('rooms/' + code);
   pc = createPeerConnection('viewer');
 
-  // استقبال قناة البيانات
   pc.ondatachannel = event => {
     const channel = event.channel;
     channel.binaryType = "arraybuffer";
@@ -345,6 +369,7 @@ async function joinViewer() {
 
   pc.ontrack = e => {
     remoteVideo.srcObject = e.streams[0];
+    remoteVideo.classList.remove('hidden'); // إظهار البث
     statusEl.textContent = translations[currentLang].connected;
   };
 
@@ -386,6 +411,7 @@ function leaveViewer() {
   cleanupConnection();
   currentCode = null; codeInput.value = ''; statusEl.textContent = '';
   remoteVideo.srcObject = null;
+  remoteVideo.classList.add('hidden'); // إخفاء البث عند قطع الاتصال
   receivedVideo.src = ''; receivedImage.src = '';
   receivedMediaContainer.classList.add('hidden');
   joinSection.classList.remove('hidden');
@@ -400,10 +426,8 @@ $('btn-connect').addEventListener('click', joinViewer);
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinViewer(); });
 $('btn-stop-host').addEventListener('click', stopHost);
 $('btn-back').addEventListener('click', leaveViewer);
-
-// أزرار الرجوع المحدثة
 $('btn-back-host').addEventListener('click', stopHost);
-$('btn-back-viewer').addEventListener('click', leaveViewer); // استخدام دالة الإغلاق لتنظيف الاتصال
+$('btn-back-viewer').addEventListener('click', leaveViewer);
 
 codeDisplay.addEventListener('click', () => {
   if (!currentCode) return;
