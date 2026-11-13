@@ -64,6 +64,15 @@
       <div class="code-display" id="code-display">------</div>
       <p class="status" id="host-status" data-i18n="waiting">Waiting for connection...</p>
       
+      <!-- إعدادات وضع التوافق -->
+      <div class="compat-toggle-container">
+        <label class="switch">
+          <input type="checkbox" id="compat-mode">
+          <span class="slider round"></span>
+        </label>
+        <span class="compat-label" data-i18n="compat_mode">Compatibility Mode (PS4/TV)</span>
+      </div>
+
       <!-- فيديو الشاشة (للكمبيوتر فقط) -->
       <video id="local-video" autoplay muted playsinline></video>
       
@@ -88,9 +97,12 @@
       </div>
 
       <div id="video-section" class="hidden">
-        <!-- شاشة البث المباشر -->
+        <!-- شاشة البث المباشر (WebRTC) -->
         <video id="remote-video" autoplay playsinline class="hidden"></video>
         
+        <!-- شاشة وضع التوافق (صور متحركة للبلايستيشن) -->
+        <img id="compat-image" class="hidden" alt="Screen Stream">
+
         <!-- قسم الوسائط المستقبلة (صور وفيديو) -->
         <div id="received-media-container" class="hidden">
           <h3 data-i18n="received_media">Received Media</h3>
