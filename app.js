@@ -17,77 +17,58 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ================== Splash Screen Logic ==================
+// ================== Splash Screen ==================
 const splashScreen = document.getElementById('splash-screen');
 const mainApp = document.getElementById('main-app');
 const btnContinue = document.getElementById('btn-continue');
-const loader = document.getElementById('loader');
+const loaderAnimation = document.getElementById('loader-animation');
 
 setTimeout(() => {
-  loader.classList.add('hidden');
-  btnContinue.classList.remove('hidden');
-}, 5000); // 5 ثواني
+  if (loaderAnimation) loaderAnimation.classList.add('hidden');
+  if (btnContinue) btnContinue.classList.remove('hidden');
+}, 5000);
 
-btnContinue.addEventListener('click', () => {
-  splashScreen.classList.add('fade-out');
-  mainApp.classList.remove('hidden');
-  setTimeout(() => splashScreen.remove(), 500); // إزالة العنصر من الصفحة بعد تلاشيه
-});
+if (btnContinue) {
+  btnContinue.addEventListener('click', () => {
+    splashScreen.classList.add('fade-out');
+    mainApp.classList.remove('hidden');
+    document.body.style.overflow = 'auto';
+    setTimeout(() => splashScreen.remove(), 500); 
+  });
+}
 
-// ================== Language Support (i18n) ==================
-let currentLang = 'en'; // اللغة الافتراضية
+// ================== Language Support ==================
+let currentLang = 'en'; 
 
 const translations = {
   en: {
-    dir: 'ltr',
-    app_title: 'Wassel',
-    app_subtitle: 'Choose your device type',
-    host_title: 'Share Screen',
-    host_desc: 'Broadcast your screen to another device',
-    viewer_title: 'View Screen',
-    viewer_desc: 'Watch a screen from another device',
-    host_screen_title: 'You are sharing',
-    host_screen_desc: 'Give this code to the other device (Click to copy):',
-    waiting: 'Waiting for connection...',
-    stop_sharing: 'Stop Sharing',
-    viewer_screen_title: 'You are watching',
-    enter_code: 'Enter the 6-digit code:',
-    connect_btn: 'Connect',
-    disconnect: 'Disconnect',
-    invalid_code: 'Enter a 6-digit code',
-    no_device: '❌ No device found with this code',
-    connected: '✓ Connected',
-    connecting: 'Connecting...',
-    failed: 'Connection failed',
-    disconnected: 'Disconnected',
-    copied: 'Copied ✓',
-    sharing_now: 'Sharing now',
+    dir: 'ltr', app_title: 'Wassel', app_subtitle: 'Choose your device role',
+    host_title: 'Target Device', host_desc: 'Generates a code to be connected to',
+    viewer_title: 'Controller Device', viewer_desc: 'Enter code to view/control the device',
+    host_screen_title: 'You are the Target', host_screen_desc: 'Give this code to the controller:',
+    waiting: 'Waiting for connection...', stop_sharing: 'Stop Sharing',
+    viewer_screen_title: 'You are the Controller', enter_code: 'Enter the 6-digit code:',
+    connect_btn: 'Connect', disconnect: 'Disconnect', back_btn: 'Back',
+    invalid_code: 'Enter a 6-digit code', no_device: '❌ No device found',
+    connected: '✓ Connected', connecting: 'Connecting...', failed: 'Connection failed',
+    disconnected: 'Disconnected', copied: 'Copied ✓', sharing_now: 'Sharing now',
+    success_title: 'Connected!', success_status: 'Now', success_desc: 'Devices are linked.',
+    send_media: '📁 Send Image/Video', received_media: 'Received Media',
     lang_btn: 'عربي'
   },
   ar: {
-    dir: 'rtl',
-    app_title: 'واصل',
-    app_subtitle: 'اختر نوع جهازك',
-    host_title: 'مشاركة الشاشة',
-    host_desc: 'بث شاشتك إلى جهاز آخر',
-    viewer_title: 'عرض الشاشة',
-    viewer_desc: 'شاهد شاشة جهاز آخر',
-    host_screen_title: 'أنت تشارك الشاشة',
-    host_screen_desc: 'أعطِ هذا الكود للجهاز الآخر (اضغط للنسخ):',
-    waiting: 'بانتظار الاتصال...',
-    stop_sharing: 'إيقاف المشاركة',
-    viewer_screen_title: 'أنت تشاهد',
-    enter_code: 'أدخل الكود المكوّن من 6 أرقام:',
-    connect_btn: 'اتصال',
-    disconnect: 'قطع الاتصال',
-    invalid_code: 'أدخل كوداً من 6 أرقام',
-    no_device: '❌ لا يوجد جهاز بهذا الكود',
-    connected: '✓ متصل',
-    connecting: 'جاري الاتصال...',
-    failed: 'فشل الاتصال',
-    disconnected: 'انقطع الاتصال',
-    copied: 'تم النسخ ✓',
-    sharing_now: 'جاري المشاركة',
+    dir: 'rtl', app_title: 'واصل', app_subtitle: 'اختر دور جهازك',
+    host_title: 'الجهاز المتصل به', host_desc: 'يظهر كود لكي يتم الاتصال به',
+    viewer_title: 'جهاز التحكم', viewer_desc: 'أدخل الكود للتحكم/المشاهدة',
+    host_screen_title: 'أنت الجهاز المتصل به', host_screen_desc: 'أعطِ هذا الكود لجهاز التحكم:',
+    waiting: 'بانتظار اتصال جهاز التحكم...', stop_sharing: 'إيقاف المشاركة',
+    viewer_screen_title: 'أنت جهاز التحكم', enter_code: 'أدخل الكود المكوّن من 6 أرقام:',
+    connect_btn: 'اتصال', disconnect: 'قطع الاتصال', back_btn: 'رجوع',
+    invalid_code: 'أدخل كوداً من 6 أرقام', no_device: '❌ لا يوجد جهاز بهذا الكود',
+    connected: '✓ متصل', connecting: 'جاري الاتصال...', failed: 'فشل الاتصال',
+    disconnected: 'انقطع الاتصال', copied: 'تم النسخ ✓', sharing_now: 'جاري المشاركة',
+    success_title: 'تم الاتصال!', success_status: 'الآن', success_desc: 'تم ربط الأجهزة بنجاح.',
+    send_media: '📁 إرسال صورة/فيديو', received_media: 'الوسائط المستلمة',
     lang_btn: 'English'
   }
 };
@@ -96,14 +77,10 @@ function setLanguage(lang) {
   currentLang = lang;
   document.documentElement.dir = translations[lang].dir;
   document.documentElement.lang = lang;
-  
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (translations[lang][key]) {
-      el.textContent = translations[lang][key];
-    }
+    if (translations[lang][key]) el.textContent = translations[lang][key];
   });
-
   document.getElementById('lang-toggle').textContent = translations[lang].lang_btn;
 }
 
@@ -111,7 +88,7 @@ document.getElementById('lang-toggle').addEventListener('click', () => {
   setLanguage(currentLang === 'en' ? 'ar' : 'en');
 });
 
-// ================== DOM Elements ==================
+// ================== Elements ==================
 const $ = id => document.getElementById(id);
 const chooseScreen = $('choose-screen');
 const hostScreen   = $('host-screen');
@@ -124,10 +101,15 @@ const statusEl     = $('status');
 const hostStatus   = $('host-status');
 const joinSection  = $('join-section');
 const videoSection = $('video-section');
+const mediaInput   = $('media-input');
+const receivedMediaContainer = $('received-media-container');
+const receivedImage = $('received-image');
+const receivedVideo = $('received-video');
 
 // ================== State ==================
 let pc = null;
 let roomRef = null;
+let dataChannel = null;
 let currentCode = null;
 let localStream = null;
 let pendingCandidates = [];
@@ -162,15 +144,8 @@ function createPeerConnection(role) {
 
 async function addCandidate(candidate) {
   if (!pc) return;
-  if (!pc.currentRemoteDescription) {
-    pendingCandidates.push(candidate);
-    return;
-  }
-  try {
-    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-  } catch (e) {
-    console.warn('addIceCandidate failed:', e);
-  }
+  if (!pc.currentRemoteDescription) { pendingCandidates.push(candidate); return; }
+  try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
 }
 
 async function flushCandidates() {
@@ -183,10 +158,18 @@ async function flushCandidates() {
 function cleanupConnection() {
   if (pc) { try { pc.close(); } catch (e) {} pc = null; }
   if (roomRef) { try { roomRef.off(); } catch (e) {} roomRef = null; }
+  if (dataChannel) { dataChannel.close(); dataChannel = null; }
   pendingCandidates = [];
 }
 
-// ================== المضيف (اللي بيعرض) ==================
+function showSuccessToast() {
+  const toast = $('success-toast');
+  if (!toast) return;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 5000);
+}
+
+// ================== Host Logic ==================
 async function startHost() {
   let stream;
   try {
@@ -207,8 +190,7 @@ async function startHost() {
   } catch (err) {
     alert('Firebase Error:\n' + err.message);
     localStream.getTracks().forEach(t => t.stop());
-    localStream = null;
-    roomRef = null;
+    localStream = null; roomRef = null;
     return;
   }
 
@@ -246,9 +228,14 @@ async function createHostConnection() {
   pc = createPeerConnection('host');
   localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
+  // إنشاء قناة بيانات لإرسال الملفات
+  dataChannel = pc.createDataChannel("fileTransfer");
+  dataChannel.binaryType = "arraybuffer";
+
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') {
       hostStatus.textContent = translations[currentLang].sharing_now;
+      showSuccessToast(); 
     } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
       hostStatus.textContent = translations[currentLang].disconnected;
     }
@@ -263,13 +250,49 @@ function stopHost() {
   if (localStream) localStream.getTracks().forEach(t => t.stop());
   if (roomRef) { try { roomRef.remove(); } catch (e) {} }
   cleanupConnection();
-  localStream = null;
-  localVideo.srcObject = null;
-  currentCode = null;
+  localStream = null; localVideo.srcObject = null; currentCode = null;
   showScreen(chooseScreen);
 }
 
-// ================== المشاهد ==================
+// ================== Send Media Logic ==================
+$('btn-send-media').addEventListener('click', () => mediaInput.click());
+
+mediaInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    alert('Connection is not fully established yet. Wait a moment.');
+    return;
+  }
+
+  const CHUNK_SIZE = 16384; // 16KB
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const fileInfo = { name: file.name, size: file.size, type: file.type, totalChunks };
+
+  dataChannel.send(JSON.stringify(fileInfo));
+
+  let offset = 0;
+  const readSlice = f => {
+    const slice = f.slice(offset, offset + CHUNK_SIZE);
+    fileReader.readAsArrayBuffer(slice);
+  };
+
+  const fileReader = new FileReader();
+  fileReader.onload = (event) => {
+    if (dataChannel.bufferedAmount > 65535) { // Backpressure
+      setTimeout(() => readSlice(file), 100);
+      return;
+    }
+    dataChannel.send(event.target.result);
+    offset += event.target.result.byteLength;
+    if (offset < file.size) {
+      readSlice(file);
+    }
+  };
+  readSlice(file);
+});
+
+// ================== Viewer Logic ==================
 async function joinViewer() {
   const code = codeInput.value.trim();
   if (!/^\d{6}$/.test(code)) {
@@ -278,10 +301,7 @@ async function joinViewer() {
   }
 
   statusEl.textContent = translations[currentLang].connecting;
-
-  const checkRef = db.ref('rooms/' + code);
-  const snap = await checkRef.get();
-
+  const snap = await db.ref('rooms/' + code).get();
   if (!snap.exists()) {
     statusEl.textContent = translations[currentLang].no_device;
     return;
@@ -291,15 +311,52 @@ async function joinViewer() {
   roomRef = db.ref('rooms/' + code);
   pc = createPeerConnection('viewer');
 
+  // استقبال قناة البيانات
+  pc.ondatachannel = event => {
+    const channel = event.channel;
+    channel.binaryType = "arraybuffer";
+    let receivedBuffers = [];
+    let fileInfo = {};
+
+    channel.onmessage = event => {
+      if (typeof event.data === 'string') {
+        fileInfo = JSON.parse(event.data);
+        receivedBuffers = [];
+      } else {
+        receivedBuffers.push(event.data);
+        if (receivedBuffers.length === fileInfo.totalChunks) {
+          const blob = new Blob(receivedBuffers, { type: fileInfo.type });
+          const url = URL.createObjectURL(blob);
+          
+          receivedMediaContainer.classList.remove('hidden');
+          if (fileInfo.type.startsWith('video/')) {
+            receivedVideo.src = url;
+            receivedVideo.classList.remove('hidden');
+            receivedImage.classList.add('hidden');
+          } else {
+            receivedImage.src = url;
+            receivedImage.classList.remove('hidden');
+            receivedVideo.classList.add('hidden');
+          }
+        }
+      }
+    };
+  };
+
   pc.ontrack = e => {
     remoteVideo.srcObject = e.streams[0];
     statusEl.textContent = translations[currentLang].connected;
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'connected') statusEl.textContent = translations[currentLang].connected;
-    else if (pc.connectionState === 'failed') statusEl.textContent = translations[currentLang].failed;
-    else if (pc.connectionState === 'disconnected') statusEl.textContent = translations[currentLang].disconnected;
+    if (pc.connectionState === 'connected') {
+      statusEl.textContent = translations[currentLang].connected;
+      showSuccessToast(); 
+    } else if (pc.connectionState === 'failed') {
+      statusEl.textContent = translations[currentLang].failed;
+    } else if (pc.connectionState === 'disconnected') {
+      statusEl.textContent = translations[currentLang].disconnected;
+    }
   };
 
   roomRef.child('offer').on('value', async s => {
@@ -327,22 +384,26 @@ async function joinViewer() {
 
 function leaveViewer() {
   cleanupConnection();
-  currentCode = null;
-  codeInput.value = '';
-  statusEl.textContent = '';
+  currentCode = null; codeInput.value = ''; statusEl.textContent = '';
   remoteVideo.srcObject = null;
+  receivedVideo.src = ''; receivedImage.src = '';
+  receivedMediaContainer.classList.add('hidden');
   joinSection.classList.remove('hidden');
   videoSection.classList.add('hidden');
   showScreen(chooseScreen);
 }
 
-// ================== Events ==================
+// ================== Events & Back Buttons ==================
 $('btn-host').addEventListener('click', startHost);
 $('btn-viewer').addEventListener('click', () => showScreen(viewerScreen));
 $('btn-connect').addEventListener('click', joinViewer);
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinViewer(); });
 $('btn-stop-host').addEventListener('click', stopHost);
 $('btn-back').addEventListener('click', leaveViewer);
+
+// أزرار الرجوع الجديدة
+$('btn-back-host').addEventListener('click', stopHost);
+$('btn-back-viewer').addEventListener('click', () => showScreen(chooseScreen));
 
 codeDisplay.addEventListener('click', () => {
   if (!currentCode) return;
