@@ -17,7 +17,101 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ================== DOM ==================
+// ================== Splash Screen Logic ==================
+const splashScreen = document.getElementById('splash-screen');
+const mainApp = document.getElementById('main-app');
+const btnContinue = document.getElementById('btn-continue');
+const loader = document.getElementById('loader');
+
+setTimeout(() => {
+  loader.classList.add('hidden');
+  btnContinue.classList.remove('hidden');
+}, 5000); // 5 ثواني
+
+btnContinue.addEventListener('click', () => {
+  splashScreen.classList.add('fade-out');
+  mainApp.classList.remove('hidden');
+  setTimeout(() => splashScreen.remove(), 500); // إزالة العنصر من الصفحة بعد تلاشيه
+});
+
+// ================== Language Support (i18n) ==================
+let currentLang = 'en'; // اللغة الافتراضية
+
+const translations = {
+  en: {
+    dir: 'ltr',
+    app_title: 'Wassel',
+    app_subtitle: 'Choose your device type',
+    host_title: 'Share Screen',
+    host_desc: 'Broadcast your screen to another device',
+    viewer_title: 'View Screen',
+    viewer_desc: 'Watch a screen from another device',
+    host_screen_title: 'You are sharing',
+    host_screen_desc: 'Give this code to the other device (Click to copy):',
+    waiting: 'Waiting for connection...',
+    stop_sharing: 'Stop Sharing',
+    viewer_screen_title: 'You are watching',
+    enter_code: 'Enter the 6-digit code:',
+    connect_btn: 'Connect',
+    disconnect: 'Disconnect',
+    invalid_code: 'Enter a 6-digit code',
+    no_device: '❌ No device found with this code',
+    connected: '✓ Connected',
+    connecting: 'Connecting...',
+    failed: 'Connection failed',
+    disconnected: 'Disconnected',
+    copied: 'Copied ✓',
+    sharing_now: 'Sharing now',
+    lang_btn: 'عربي'
+  },
+  ar: {
+    dir: 'rtl',
+    app_title: 'واصل',
+    app_subtitle: 'اختر نوع جهازك',
+    host_title: 'مشاركة الشاشة',
+    host_desc: 'بث شاشتك إلى جهاز آخر',
+    viewer_title: 'عرض الشاشة',
+    viewer_desc: 'شاهد شاشة جهاز آخر',
+    host_screen_title: 'أنت تشارك الشاشة',
+    host_screen_desc: 'أعطِ هذا الكود للجهاز الآخر (اضغط للنسخ):',
+    waiting: 'بانتظار الاتصال...',
+    stop_sharing: 'إيقاف المشاركة',
+    viewer_screen_title: 'أنت تشاهد',
+    enter_code: 'أدخل الكود المكوّن من 6 أرقام:',
+    connect_btn: 'اتصال',
+    disconnect: 'قطع الاتصال',
+    invalid_code: 'أدخل كوداً من 6 أرقام',
+    no_device: '❌ لا يوجد جهاز بهذا الكود',
+    connected: '✓ متصل',
+    connecting: 'جاري الاتصال...',
+    failed: 'فشل الاتصال',
+    disconnected: 'انقطع الاتصال',
+    copied: 'تم النسخ ✓',
+    sharing_now: 'جاري المشاركة',
+    lang_btn: 'English'
+  }
+};
+
+function setLanguage(lang) {
+  currentLang = lang;
+  document.documentElement.dir = translations[lang].dir;
+  document.documentElement.lang = lang;
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) {
+      el.textContent = translations[lang][key];
+    }
+  });
+
+  document.getElementById('lang-toggle').textContent = translations[lang].lang_btn;
+}
+
+document.getElementById('lang-toggle').addEventListener('click', () => {
+  setLanguage(currentLang === 'en' ? 'ar' : 'en');
+});
+
+// ================== DOM Elements ==================
 const $ = id => document.getElementById(id);
 const chooseScreen = $('choose-screen');
 const hostScreen   = $('host-screen');
@@ -96,12 +190,9 @@ function cleanupConnection() {
 async function startHost() {
   let stream;
   try {
-    stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 30 },
-      audio: true
-    });
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
   } catch (err) {
-    alert('تعذّر الوصول إلى الشاشة: ' + err.message);
+    alert('Could not access screen: ' + err.message);
     return;
   }
 
@@ -114,7 +205,7 @@ async function startHost() {
     await roomRef.set({ createdAt: Date.now(), host: true });
     roomRef.onDisconnect().remove();
   } catch (err) {
-    alert('تعذّر الاتصال بـ Firebase. تحقق من إعداداتك:\n' + err.message);
+    alert('Firebase Error:\n' + err.message);
     localStream.getTracks().forEach(t => t.stop());
     localStream = null;
     roomRef = null;
@@ -122,7 +213,7 @@ async function startHost() {
   }
 
   codeDisplay.textContent = currentCode;
-  hostStatus.textContent = 'بانتظار اتصال الجهاز الثاني...';
+  hostStatus.textContent = translations[currentLang].waiting;
   showScreen(hostScreen);
 
   const videoTrack = localStream.getVideoTracks()[0];
@@ -140,10 +231,8 @@ async function startHost() {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
         await flushCandidates();
-        hostStatus.textContent = '✓ متصل — جاري المشاركة';
-      } catch (e) {
-        console.error(e);
-      }
+        hostStatus.textContent = translations[currentLang].connected;
+      } catch (e) { console.error(e); }
     }
   });
 
@@ -159,9 +248,9 @@ async function createHostConnection() {
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') {
-      hostStatus.textContent = '✓ متصل';
+      hostStatus.textContent = translations[currentLang].sharing_now;
     } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
-      hostStatus.textContent = 'انقطع الاتصال';
+      hostStatus.textContent = translations[currentLang].disconnected;
     }
   };
 
@@ -184,17 +273,17 @@ function stopHost() {
 async function joinViewer() {
   const code = codeInput.value.trim();
   if (!/^\d{6}$/.test(code)) {
-    statusEl.textContent = 'أدخل كوداً من 6 أرقام';
+    statusEl.textContent = translations[currentLang].invalid_code;
     return;
   }
 
-  statusEl.textContent = 'جاري التحقق...';
+  statusEl.textContent = translations[currentLang].connecting;
 
   const checkRef = db.ref('rooms/' + code);
   const snap = await checkRef.get();
 
   if (!snap.exists()) {
-    statusEl.textContent = '❌ لا يوجد جهاز بهذا الكود';
+    statusEl.textContent = translations[currentLang].no_device;
     return;
   }
 
@@ -204,13 +293,13 @@ async function joinViewer() {
 
   pc.ontrack = e => {
     remoteVideo.srcObject = e.streams[0];
-    statusEl.textContent = '✓ متصل';
+    statusEl.textContent = translations[currentLang].connected;
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'connected') statusEl.textContent = '✓ متصل';
-    else if (pc.connectionState === 'failed') statusEl.textContent = 'فشل الاتصال';
-    else if (pc.connectionState === 'disconnected') statusEl.textContent = 'انقطع الاتصال';
+    if (pc.connectionState === 'connected') statusEl.textContent = translations[currentLang].connected;
+    else if (pc.connectionState === 'failed') statusEl.textContent = translations[currentLang].failed;
+    else if (pc.connectionState === 'disconnected') statusEl.textContent = translations[currentLang].disconnected;
   };
 
   roomRef.child('offer').on('value', async s => {
@@ -231,7 +320,7 @@ async function joinViewer() {
 
   joinSection.classList.add('hidden');
   videoSection.classList.remove('hidden');
-  statusEl.textContent = 'جاري الاتصال...';
+  statusEl.textContent = translations[currentLang].connecting;
 
   await roomRef.child('viewerJoined').set(true);
 }
@@ -258,9 +347,9 @@ $('btn-back').addEventListener('click', leaveViewer);
 codeDisplay.addEventListener('click', () => {
   if (!currentCode) return;
   navigator.clipboard.writeText(currentCode).then(() => {
-    const original = codeDisplay.textContent;
+    const original = currentCode;
     codeDisplay.classList.add('copied');
-    codeDisplay.textContent = 'تم النسخ ✓';
+    codeDisplay.textContent = translations[currentLang].copied;
     setTimeout(() => {
       codeDisplay.textContent = original;
       codeDisplay.classList.remove('copied');
