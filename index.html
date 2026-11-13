@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>شوفني | مشاركة الشاشة</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- شاشة الاختيار -->
+    <section id="choose-screen" class="screen active">
+      <h1>📺 شوفني</h1>
+      <p>اختر نوع جهازك</p>
+      <div class="options">
+        <button id="btn-host" class="option">
+          <div class="icon">🖥️</div>
+          <h2>أنا الجهاز اللي بيعرض</h2>
+          <p>ابعت شاشتك لجهاز ثاني</p>
+        </button>
+        <button id="btn-viewer" class="option">
+          <div class="icon">📱</div>
+          <h2>أنا الجهاز اللي بدو يشوف</h2>
+          <p>استقبل شاشة جهاز ثاني</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- شاشة المضيف (اللي بيعرض) -->
+    <section id="host-screen" class="screen">
+      <h1>أنت الجهاز اللي بيعرض</h1>
+      <p>أعطِ هذا الكود للجهاز الثاني (اضغط عليه للنسخ):</p>
+      <div class="code-display" id="code-display">------</div>
+      <p class="status" id="host-status">بانتظار اتصال الجهاز الثاني...</p>
+      <video id="local-video" autoplay muted playsinline></video>
+      <button id="btn-stop-host" class="btn btn-secondary">إيقاف المشاركة</button>
+    </section>
+
+    <!-- شاشة المشاهد -->
+    <section id="viewer-screen" class="screen">
+      <h1>أنت الجهاز اللي بدو يشوف</h1>
+
+      <div id="join-section">
+        <p>أدخل الكود المكوّن من 6 أرقام:</p>
+        <input type="text" id="code-input" maxlength="6" inputmode="numeric"
+               placeholder="000000" class="code-input" autocomplete="off">
+        <button id="btn-connect" class="btn">اتصال</button>
+      </div>
+
+      <div id="video-section" class="hidden">
+        <video id="remote-video" autoplay playsinline></video>
+        <button id="btn-back" class="btn btn-secondary">قطع الاتصال</button>
+      </div>
+
+      <p class="status" id="status"></p>
+    </section>
+
+  </div>
+
+  <!-- استدعاء مكتبات Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
