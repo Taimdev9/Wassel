@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wassel | Screen Sharing</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Google Cast SDK -->
+  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 </head>
 <body>
 
@@ -15,6 +17,20 @@
       <div class="spinner" id="loader-spinner"></div>
       <p class="creator">FROM TAIMDEV9</p>
       <button id="btn-continue" class="btn btn-continue hidden">Continue</button>
+    </div>
+  </div>
+
+  <!-- نافذة التحديثات (تظهر مرة واحدة) -->
+  <div id="update-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="modal-title">What's New in Wassel v2.0 🚀</h2>
+      <ul class="modal-list">
+        <li>🎨 A completely new Dark & Burgundy design.</li>
+        <li>📺 Added Cast support to send media to Chromecast/TVs.</li>
+        <li>✨ Replaced emojis with professional SVG icons.</li>
+        <li>⚡ Improved connection stability and UI speed.</li>
+      </ul>
+      <button id="btn-close-modal" class="btn btn-primary">Got it!</button>
     </div>
   </div>
 
@@ -44,12 +60,12 @@
       <p data-i18n="app_subtitle">Choose your device role</p>
       <div class="options">
         <button id="btn-host" class="option">
-          <div class="icon">🎯</div>
+          <svg class="svg-icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
           <h2 data-i18n="host_title">Target Device</h2>
           <p data-i18n="host_desc">Generates a code to be connected to</p>
         </button>
         <button id="btn-viewer" class="option">
-          <div class="icon">🎮</div>
+          <svg class="svg-icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
           <h2 data-i18n="viewer_title">Controller Device</h2>
           <p data-i18n="viewer_desc">Enter code to view/control the device</p>
         </button>
@@ -58,7 +74,7 @@
 
     <!-- شاشة المتصل به (Host) -->
     <section id="host-screen" class="screen">
-      <button id="btn-back-host" class="btn-back">↩ <span data-i18n="back_btn">Back</span></button>
+      <button id="btn-back-host" class="btn-back"><svg class="svg-icon-sm" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> <span data-i18n="back_btn">Back</span></button>
       <h1 data-i18n="host_screen_title">You are the Target</h1>
       <p data-i18n="host_screen_desc">Give this code to the controller (Click to copy):</p>
       <div class="code-display" id="code-display">------</div>
@@ -73,44 +89,51 @@
         <span class="compat-label" data-i18n="compat_mode">Compatibility Mode (PS4/TV)</span>
       </div>
 
-      <!-- فيديو الشاشة (للكمبيوتر فقط) -->
       <video id="local-video" autoplay muted playsinline></video>
       
       <div class="host-controls">
-        <!-- زر إرسال وسائط -->
         <input type="file" id="media-input" accept="image/*,video/*" class="hidden">
-        <button id="btn-send-media" class="btn btn-media" data-i18n="send_media">📁 Send Image/Video</button>
-        <button id="btn-stop-host" class="btn btn-secondary" data-i18n="stop_sharing">Stop Sharing</button>
+        <button id="btn-send-media" class="btn btn-secondary">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span data-i18n="send_media">Send File</span>
+        </button>
+        
+        <!-- زر البث للتلفزيون -->
+        <button id="btn-cast" class="btn btn-accent hidden">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"></path><polygon points="2 20 8 20 8 14 2 14 2 20"></polygon><path d="M18 13v5"></path><path d="M15 15.5h6"></path></svg>
+          <span data-i18n="cast_btn">Cast to TV</span>
+        </button>
+
+        <button id="btn-stop-host" class="btn btn-danger">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6"></rect></svg>
+          <span data-i18n="stop_sharing">Stop</span>
+        </button>
       </div>
     </section>
 
     <!-- شاشة جهاز التحكم (Viewer) -->
     <section id="viewer-screen" class="screen">
-      <button id="btn-back-viewer" class="btn-back">↩ <span data-i18n="back_btn">Back</span></button>
+      <button id="btn-back-viewer" class="btn-back"><svg class="svg-icon-sm" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> <span data-i18n="back_btn">Back</span></button>
       <h1 data-i18n="viewer_screen_title">You are the Controller</h1>
 
       <div id="join-section">
         <p data-i18n="enter_code">Enter the 6-digit code to connect:</p>
         <input type="text" id="code-input" maxlength="6" inputmode="numeric"
                placeholder="000000" class="code-input" autocomplete="off">
-        <button id="btn-connect" class="btn" data-i18n="connect_btn">Connect</button>
+        <button id="btn-connect" class="btn btn-primary" data-i18n="connect_btn">Connect</button>
       </div>
 
       <div id="video-section" class="hidden">
-        <!-- شاشة البث المباشر (WebRTC) -->
         <video id="remote-video" autoplay playsinline class="hidden"></video>
-        
-        <!-- شاشة وضع التوافق (صور متحركة للبلايستيشن) -->
         <img id="compat-image" class="hidden" alt="Screen Stream">
 
-        <!-- قسم الوسائط المستقبلة (صور وفيديو) -->
         <div id="received-media-container" class="hidden">
           <h3 data-i18n="received_media">Received Media</h3>
           <img id="received-image" class="hidden" alt="Received Image">
           <video id="received-video" controls class="hidden"></video>
         </div>
 
-        <button id="btn-back" class="btn btn-secondary" data-i18n="disconnect">Disconnect</button>
+        <button id="btn-back" class="btn btn-danger" data-i18n="disconnect">Disconnect</button>
       </div>
 
       <p class="status" id="status"></p>
