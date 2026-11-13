@@ -17,16 +17,15 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ================== Splash Screen ==================
+// ================== Splash Screen Logic (4 Seconds) ==================
 const splashScreen = document.getElementById('splash-screen');
 const mainApp = document.getElementById('main-app');
 const btnContinue = document.getElementById('btn-continue');
-const loaderAnimation = document.getElementById('loader-animation');
 
 setTimeout(() => {
-  if (loaderAnimation) loaderAnimation.classList.add('hidden');
+  // إخفاء اللودر وإظهار الزر بعد 4 ثواني
   if (btnContinue) btnContinue.classList.remove('hidden');
-}, 5000);
+}, 4000); 
 
 if (btnContinue) {
   btnContinue.addEventListener('click', () => {
@@ -158,7 +157,7 @@ async function flushCandidates() {
 function cleanupConnection() {
   if (pc) { try { pc.close(); } catch (e) {} pc = null; }
   if (roomRef) { try { roomRef.off(); } catch (e) {} roomRef = null; }
-  if (dataChannel) { dataChannel.close(); dataChannel = null; }
+  if (dataChannel) { try { dataChannel.close(); } catch(e){} dataChannel = null; }
   pendingCandidates = [];
 }
 
@@ -228,7 +227,7 @@ async function createHostConnection() {
   pc = createPeerConnection('host');
   localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-  // إنشاء قناة بيانات لإرسال الملفات
+  // إنشاء قناة البيانات لنقل الملفات
   dataChannel = pc.createDataChannel("fileTransfer");
   dataChannel.binaryType = "arraybuffer";
 
@@ -265,7 +264,7 @@ mediaInput.addEventListener('change', async (e) => {
     return;
   }
 
-  const CHUNK_SIZE = 16384; // 16KB
+  const CHUNK_SIZE = 16384; 
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const fileInfo = { name: file.name, size: file.size, type: file.type, totalChunks };
 
@@ -279,7 +278,7 @@ mediaInput.addEventListener('change', async (e) => {
 
   const fileReader = new FileReader();
   fileReader.onload = (event) => {
-    if (dataChannel.bufferedAmount > 65535) { // Backpressure
+    if (dataChannel.bufferedAmount > 65535) {
       setTimeout(() => readSlice(file), 100);
       return;
     }
@@ -290,6 +289,7 @@ mediaInput.addEventListener('change', async (e) => {
     }
   };
   readSlice(file);
+  mediaInput.value = ''; // تفريغ الحقل للسماح بإرسال ملف آخر
 });
 
 // ================== Viewer Logic ==================
@@ -393,7 +393,7 @@ function leaveViewer() {
   showScreen(chooseScreen);
 }
 
-// ================== Events & Back Buttons ==================
+// ================== Events ==================
 $('btn-host').addEventListener('click', startHost);
 $('btn-viewer').addEventListener('click', () => showScreen(viewerScreen));
 $('btn-connect').addEventListener('click', joinViewer);
@@ -401,9 +401,9 @@ codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinViewer()
 $('btn-stop-host').addEventListener('click', stopHost);
 $('btn-back').addEventListener('click', leaveViewer);
 
-// أزرار الرجوع الجديدة
+// أزرار الرجوع المحدثة
 $('btn-back-host').addEventListener('click', stopHost);
-$('btn-back-viewer').addEventListener('click', () => showScreen(chooseScreen));
+$('btn-back-viewer').addEventListener('click', leaveViewer); // استخدام دالة الإغلاق لتنظيف الاتصال
 
 codeDisplay.addEventListener('click', () => {
   if (!currentCode) return;
