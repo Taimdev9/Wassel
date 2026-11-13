@@ -8,21 +8,13 @@
 </head>
 <body>
 
-  <!-- شاشة التحميل -->
+  <!-- شاشة التحميل (محسنة وأفقية) -->
   <div id="splash-screen">
     <div class="splash-content">
-      <div class="loader" id="loader-animation">
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="text"><span>Wassel</span></div>
-        <div class="line"></div>
-      </div>
+      <!-- اللودر الجديد -->
+      <h1 class="loader-text">Wassel</h1>
+      <div class="spinner"></div>
+      
       <p class="creator">FROM TAIMDEV9</p>
       <button id="btn-continue" class="btn btn-continue hidden">Continue</button>
     </div>
@@ -77,7 +69,6 @@
       <video id="local-video" autoplay muted playsinline></video>
       
       <div class="host-controls">
-        <!-- زر إرسال وسائط -->
         <input type="file" id="media-input" accept="image/*,video/*" class="hidden">
         <button id="btn-send-media" class="btn btn-media" data-i18n="send_media">📁 Send Image/Video</button>
         <button id="btn-stop-host" class="btn btn-secondary" data-i18n="stop_sharing">Stop Sharing</button>
@@ -97,10 +88,8 @@
       </div>
 
       <div id="video-section" class="hidden">
-        <!-- شاشة البث المباشر -->
         <video id="remote-video" autoplay playsinline></video>
         
-        <!-- قسم الوسائط المستقبلة (صور وفيديو) -->
         <div id="received-media-container" class="hidden">
           <h3 data-i18n="received_media">Received Media</h3>
           <img id="received-image" class="hidden" alt="Received Image">
