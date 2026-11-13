@@ -37,7 +37,6 @@ body {
 #splash-screen.fade-out { opacity: 0; pointer-events: none; }
 .splash-content { display: flex; flex-direction: column; align-items: center; gap: 15px; }
 
-/* كلمة واصل بتأثير اللمعان */
 .loader-text {
   font-size: clamp(3rem, 8vw, 5rem);
   font-weight: 900;
@@ -52,14 +51,10 @@ body {
   direction: ltr;
 }
 
-@keyframes shine {
-  to { background-position: 200% center; }
-}
+@keyframes shine { to { background-position: 200% center; } }
 
-/* دائرة التحميل */
 .spinner {
-  width: 40px;
-  height: 40px;
+  width: 40px; height: 40px;
   border: 4px solid var(--border);
   border-top: 4px solid var(--accent);
   border-radius: 50%;
@@ -67,9 +62,7 @@ body {
   margin-top: 10px;
 }
 
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 .creator { color: var(--text-dim); letter-spacing: 4px; font-size: 14px; font-weight: 600; margin-top: 20px; }
 .btn-continue { padding: 12px 40px; font-size: 18px; border-radius: 30px; animation: fadeIn 0.5s ease; }
