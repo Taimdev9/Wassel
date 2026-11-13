@@ -21,9 +21,11 @@ const db = firebase.database();
 const splashScreen = document.getElementById('splash-screen');
 const mainApp = document.getElementById('main-app');
 const btnContinue = document.getElementById('btn-continue');
+const loaderSpinner = document.getElementById('loader-spinner');
 
 setTimeout(() => {
-  if (btnContinue) btnContinue.classList.remove('hidden');
+  if (loaderSpinner) loaderSpinner.style.display = 'none'; // إخفاء دائرة التحميل
+  if (btnContinue) btnContinue.classList.remove('hidden'); // إظهار زر الاستمرار
 }, 4000); 
 
 if (btnContinue) {
@@ -55,7 +57,8 @@ const translations = {
     lang_btn: 'عربي',
     mobile_warn: "Mobile browsers don't support live screen sharing.\nDo you want to open the room to send media only?",
     media_only_connected: "Connected (Media Only)",
-    err_not_connected: "Connection is not ready yet. Wait a moment."
+    err_not_connected: "Connection is not ready yet. Wait a moment.",
+    timeout_err: "Connection timed out. Your network or device (like PS4) is blocking the connection. Try another device."
   },
   ar: {
     dir: 'rtl', app_title: 'واصل', app_subtitle: 'اختر دور جهازك',
@@ -73,7 +76,8 @@ const translations = {
     lang_btn: 'English',
     mobile_warn: "متصفح الهاتف لا يدعم مشاركة الشاشة الحية.\nهل تريد فتح الغرفة لإرسال الصور والفيديوهات فقط؟",
     media_only_connected: "متصل (إرسال وسائط فقط)",
-    err_not_connected: "لم يكتمل الاتصال بعد، انتظر لحظة."
+    err_not_connected: "لم يكتمل الاتصال بعد، انتظر لحظة.",
+    timeout_err: "انتهت مهلة الاتصال. جهازك (مثل البلايستيشن) أو شبكتك تمنع الاتصال المباشر. جرب جهازاً آخر."
   }
 };
 
@@ -117,6 +121,7 @@ let dataChannel = null;
 let currentCode = null;
 let localStream = null;
 let pendingCandidates = [];
+let connectionTimeout = null; // مؤقت لمراقبة الاتصال
 
 // ================== Helpers ==================
 function showScreen(el) {
@@ -128,11 +133,27 @@ function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// 🌟 إضافة سيرفرات TURN لتجاوز جدران الحماية (مهم جداً للشبكات المقيدة مثل البلايستيشن)
 function createPeerConnection(role) {
   const peer = new RTCPeerConnection({
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
     ]
   });
 
@@ -160,6 +181,7 @@ async function flushCandidates() {
 }
 
 function cleanupConnection() {
+  if (connectionTimeout) clearTimeout(connectionTimeout); 
   if (pc) { try { pc.close(); } catch (e) {} pc = null; }
   if (roomRef) { try { roomRef.off(); } catch (e) {} roomRef = null; }
   if (dataChannel) { try { dataChannel.close(); } catch(e){} dataChannel = null; }
@@ -173,11 +195,9 @@ function showSuccessToast() {
   setTimeout(() => toast.classList.add('hidden'), 5000);
 }
 
-// ================== Host Logic (Supports PC & Mobile) ==================
+// ================== Host Logic ==================
 async function startHost() {
   let stream = null;
-  
-  // فحص دقيق: هل المتصفح يدعم التقاط الشاشة؟
   const supportsScreenShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 
   if (supportsScreenShare) {
@@ -187,7 +207,6 @@ async function startHost() {
       localVideo.srcObject = stream;
       localVideo.classList.remove('hidden');
     } catch (err) {
-      // إذا رفض المستخدم مشاركة الشاشة
       const msg = currentLang === 'ar' 
         ? "لم يتم مشاركة الشاشة. هل تريد الاستمرار لإرسال صور وفيديوهات فقط؟" 
         : "Screen not shared. Continue to send images/videos only?";
@@ -195,12 +214,10 @@ async function startHost() {
       localVideo.classList.add('hidden');
     }
   } else {
-    // الهاتف المحمول: تنبيه واضح بدلاً من الخطأ
     alert(translations[currentLang].mobile_warn);
     localVideo.classList.add('hidden');
   }
 
-  // إنشاء الغرفة في Firebase
   currentCode = generateCode();
   roomRef = db.ref('rooms/' + currentCode);
 
@@ -249,17 +266,16 @@ async function startHost() {
 async function createHostConnection() {
   pc = createPeerConnection('host');
   
-  // إضافة مسار الفيديو فقط إذا كان موجوداً (كمبيوتر)
   if (localStream) {
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
   }
 
-  // إنشاء قناة البيانات لنقل الملفات (تعمل على الكمبيوتر والموبايل)
   dataChannel = pc.createDataChannel("fileTransfer");
   dataChannel.binaryType = "arraybuffer";
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') {
+      if (connectionTimeout) clearTimeout(connectionTimeout);
       hostStatus.textContent = localStream ? translations[currentLang].sharing_now : translations[currentLang].media_only_connected;
       showSuccessToast(); 
     } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
@@ -281,7 +297,7 @@ function stopHost() {
   showScreen(chooseScreen);
 }
 
-// ================== Send Media Logic (Chunking) ==================
+// ================== Send Media Logic ==================
 $('btn-send-media').addEventListener('click', () => mediaInput.click());
 
 mediaInput.addEventListener('change', async (e) => {
@@ -306,7 +322,7 @@ mediaInput.addEventListener('change', async (e) => {
 
   const fileReader = new FileReader();
   fileReader.onload = (event) => {
-    if (dataChannel.bufferedAmount > 65535) {
+    if (dataChannel.bufferedAmount > 65535) { // فحص سرعة الإرسال
       setTimeout(() => readSlice(file), 100);
       return;
     }
@@ -317,10 +333,10 @@ mediaInput.addEventListener('change', async (e) => {
     }
   };
   readSlice(file);
-  mediaInput.value = ''; // تفريغ الحقل
+  mediaInput.value = ''; // تفريغ الحقل لإرسال ملف آخر
 });
 
-// ================== Viewer Logic (Receiving) ==================
+// ================== Viewer Logic ==================
 async function joinViewer() {
   const code = codeInput.value.trim();
   if (!/^\d{6}$/.test(code)) {
@@ -339,7 +355,14 @@ async function joinViewer() {
   roomRef = db.ref('rooms/' + code);
   pc = createPeerConnection('viewer');
 
-  // استقبال قناة البيانات (الصور والفيديوهات)
+  // 🌟 مؤقت 15 ثانية للتحقق من فشل الاتصال (مهم للبلايستيشن)
+  connectionTimeout = setTimeout(() => {
+    if (pc && pc.connectionState !== 'connected') {
+      statusEl.textContent = translations[currentLang].timeout_err;
+      cleanupConnection();
+    }
+  }, 15000);
+
   pc.ondatachannel = event => {
     const channel = event.channel;
     channel.binaryType = "arraybuffer";
@@ -371,7 +394,6 @@ async function joinViewer() {
     };
   };
 
-  // استقبال الشاشة الحية (إذا كان المتصل به كمبيوتر)
   pc.ontrack = e => {
     remoteVideo.srcObject = e.streams[0];
     remoteVideo.classList.remove('hidden'); 
@@ -380,9 +402,11 @@ async function joinViewer() {
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') {
+      if (connectionTimeout) clearTimeout(connectionTimeout);
       statusEl.textContent = translations[currentLang].connected;
       showSuccessToast(); 
     } else if (pc.connectionState === 'failed') {
+      if (connectionTimeout) clearTimeout(connectionTimeout);
       statusEl.textContent = translations[currentLang].failed;
     } else if (pc.connectionState === 'disconnected') {
       statusEl.textContent = translations[currentLang].disconnected;
