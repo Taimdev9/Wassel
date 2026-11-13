@@ -53,9 +53,9 @@ const translations = {
     success_title: 'Connected!', success_status: 'Now', success_desc: 'Devices are linked.',
     send_media: '📁 Send Image/Video', received_media: 'Received Media',
     lang_btn: 'عربي',
-    // رسائل الموبايل
-    mobile_warn: "Your browser doesn't support screen sharing.\nDo you want to open the room to send images/videos only?",
-    mobile_warn_cancel: "Screen sharing failed or was cancelled.\nDo you want to continue to send images/videos only?"
+    mobile_warn: "Mobile browsers don't support live screen sharing.\nDo you want to open the room to send media only?",
+    media_only_connected: "Connected (Media Only)",
+    err_not_connected: "Connection is not ready yet. Wait a moment."
   },
   ar: {
     dir: 'rtl', app_title: 'واصل', app_subtitle: 'اختر دور جهازك',
@@ -71,9 +71,9 @@ const translations = {
     success_title: 'تم الاتصال!', success_status: 'الآن', success_desc: 'تم ربط الأجهزة بنجاح.',
     send_media: '📁 إرسال صورة/فيديو', received_media: 'الوسائط المستلمة',
     lang_btn: 'English',
-    // رسائل الموبايل
-    mobile_warn: "متصفحك لا يدعم مشاركة الشاشة الحية.\nهل تريد فتح الغرفة لإرسال صور وفيديوهات فقط؟",
-    mobile_warn_cancel: "تم إلغاء مشاركة الشاشة.\nهل تريد الاستمرار لإرسال صور وفيديوهات فقط؟"
+    mobile_warn: "متصفح الهاتف لا يدعم مشاركة الشاشة الحية.\nهل تريد فتح الغرفة لإرسال الصور والفيديوهات فقط؟",
+    media_only_connected: "متصل (إرسال وسائط فقط)",
+    err_not_connected: "لم يكتمل الاتصال بعد، انتظر لحظة."
   }
 };
 
@@ -173,31 +173,34 @@ function showSuccessToast() {
   setTimeout(() => toast.classList.add('hidden'), 5000);
 }
 
-// ================== Host Logic (Modified for Mobile Support) ==================
+// ================== Host Logic (Supports PC & Mobile) ==================
 async function startHost() {
   let stream = null;
+  
+  // فحص دقيق: هل المتصفح يدعم التقاط الشاشة؟
+  const supportsScreenShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 
-  // التحقق من دعم المتصفح
-  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+  if (supportsScreenShare) {
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
       localStream = stream;
       localVideo.srcObject = stream;
-      localVideo.classList.remove('hidden'); // إظهار الفيديو لو اشتغل
+      localVideo.classList.remove('hidden');
     } catch (err) {
-      // المستخدم ضغط إلغاء أو حصل خطأ
-      const proceed = confirm(translations[currentLang].mobile_warn_cancel);
-      if (!proceed) return;
-      localVideo.classList.add('hidden'); // إخفاء الفيديو
+      // إذا رفض المستخدم مشاركة الشاشة
+      const msg = currentLang === 'ar' 
+        ? "لم يتم مشاركة الشاشة. هل تريد الاستمرار لإرسال صور وفيديوهات فقط؟" 
+        : "Screen not shared. Continue to send images/videos only?";
+      if (!confirm(msg)) return;
+      localVideo.classList.add('hidden');
     }
   } else {
-    // المتصفح لا يدعم مشاركة الشاشة (موبايل)
-    const proceed = confirm(translations[currentLang].mobile_warn);
-    if (!proceed) return;
-    localVideo.classList.add('hidden'); // إخفاء الفيديو
+    // الهاتف المحمول: تنبيه واضح بدلاً من الخطأ
+    alert(translations[currentLang].mobile_warn);
+    localVideo.classList.add('hidden');
   }
 
-  // إنشاء الغرفة
+  // إنشاء الغرفة في Firebase
   currentCode = generateCode();
   roomRef = db.ref('rooms/' + currentCode);
 
@@ -232,7 +235,7 @@ async function startHost() {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
         await flushCandidates();
-        hostStatus.textContent = translations[currentLang].connected;
+        hostStatus.textContent = localStream ? translations[currentLang].connected : translations[currentLang].media_only_connected;
       } catch (e) { console.error(e); }
     }
   });
@@ -257,7 +260,7 @@ async function createHostConnection() {
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') {
-      hostStatus.textContent = localStream ? translations[currentLang].sharing_now : translations[currentLang].connected;
+      hostStatus.textContent = localStream ? translations[currentLang].sharing_now : translations[currentLang].media_only_connected;
       showSuccessToast(); 
     } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
       hostStatus.textContent = translations[currentLang].disconnected;
@@ -274,22 +277,22 @@ function stopHost() {
   if (roomRef) { try { roomRef.remove(); } catch (e) {} }
   cleanupConnection();
   localStream = null; localVideo.srcObject = null; currentCode = null;
-  localVideo.classList.remove('hidden'); // إعادة ضبط الحالة
+  localVideo.classList.remove('hidden'); 
   showScreen(chooseScreen);
 }
 
-// ================== Send Media Logic ==================
+// ================== Send Media Logic (Chunking) ==================
 $('btn-send-media').addEventListener('click', () => mediaInput.click());
 
 mediaInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   if (!dataChannel || dataChannel.readyState !== 'open') {
-    alert('Connection is not fully established yet. Wait a moment.');
+    alert(translations[currentLang].err_not_connected);
     return;
   }
 
-  const CHUNK_SIZE = 16384; 
+  const CHUNK_SIZE = 16384; // 16KB
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const fileInfo = { name: file.name, size: file.size, type: file.type, totalChunks };
 
@@ -314,10 +317,10 @@ mediaInput.addEventListener('change', async (e) => {
     }
   };
   readSlice(file);
-  mediaInput.value = ''; 
+  mediaInput.value = ''; // تفريغ الحقل
 });
 
-// ================== Viewer Logic ==================
+// ================== Viewer Logic (Receiving) ==================
 async function joinViewer() {
   const code = codeInput.value.trim();
   if (!/^\d{6}$/.test(code)) {
@@ -336,6 +339,7 @@ async function joinViewer() {
   roomRef = db.ref('rooms/' + code);
   pc = createPeerConnection('viewer');
 
+  // استقبال قناة البيانات (الصور والفيديوهات)
   pc.ondatachannel = event => {
     const channel = event.channel;
     channel.binaryType = "arraybuffer";
@@ -367,9 +371,10 @@ async function joinViewer() {
     };
   };
 
+  // استقبال الشاشة الحية (إذا كان المتصل به كمبيوتر)
   pc.ontrack = e => {
     remoteVideo.srcObject = e.streams[0];
-    remoteVideo.classList.remove('hidden'); // إظهار البث
+    remoteVideo.classList.remove('hidden'); 
     statusEl.textContent = translations[currentLang].connected;
   };
 
@@ -411,7 +416,7 @@ function leaveViewer() {
   cleanupConnection();
   currentCode = null; codeInput.value = ''; statusEl.textContent = '';
   remoteVideo.srcObject = null;
-  remoteVideo.classList.add('hidden'); // إخفاء البث عند قطع الاتصال
+  remoteVideo.classList.add('hidden'); 
   receivedVideo.src = ''; receivedImage.src = '';
   receivedMediaContainer.classList.add('hidden');
   joinSection.classList.remove('hidden');
