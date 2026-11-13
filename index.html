@@ -1,56 +1,71 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>واصل | مشاركة الشاشة</title>
+  <title>Wassel | Screen Sharing</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app">
+
+  <!-- شاشة التحميل Splash Screen -->
+  <div id="splash-screen">
+    <div class="splash-content">
+      <h1>Wassel</h1>
+      <p class="creator">FROM TAIMDEV9</p>
+      <div id="loader" class="loader"></div>
+      <button id="btn-continue" class="btn btn-continue hidden">Continue</button>
+    </div>
+  </div>
+
+  <!-- التطبيق الرئيسي -->
+  <div class="app hidden" id="main-app">
+    
+    <!-- زر تغيير اللغة -->
+    <button id="lang-toggle" class="lang-btn">عربي</button>
 
     <!-- شاشة الاختيار -->
     <section id="choose-screen" class="screen active">
-      <h1>📺 واصل</h1>
-      <p>اختر نوع جهازك</p>
+      <h1 data-i18n="app_title">Wassel</h1>
+      <p data-i18n="app_subtitle">Choose your device type</p>
       <div class="options">
         <button id="btn-host" class="option">
-          <div class="icon">🖥️</div>
-          <h2>أنا الجهاز اللي بيعرض</h2>
-          <p>ابعت شاشتك لجهاز ثاني</p>
+          <div class="icon">📡</div>
+          <h2 data-i18n="host_title">Share Screen</h2>
+          <p data-i18n="host_desc">Broadcast your screen to another device</p>
         </button>
         <button id="btn-viewer" class="option">
-          <div class="icon">📱</div>
-          <h2>أنا الجهاز اللي بدو يشوف</h2>
-          <p>استقبل شاشة جهاز ثاني</p>
+          <div class="icon">🖥️</div>
+          <h2 data-i18n="viewer_title">View Screen</h2>
+          <p data-i18n="viewer_desc">Watch a screen from another device</p>
         </button>
       </div>
     </section>
 
     <!-- شاشة المضيف (اللي بيعرض) -->
     <section id="host-screen" class="screen">
-      <h1>أنت الجهاز اللي بيعرض</h1>
-      <p>أعطِ هذا الكود للجهاز الثاني (اضغط عليه للنسخ):</p>
+      <h1 data-i18n="host_screen_title">You are sharing</h1>
+      <p data-i18n="host_screen_desc">Give this code to the other device (Click to copy):</p>
       <div class="code-display" id="code-display">------</div>
-      <p class="status" id="host-status">بانتظار اتصال الجهاز الثاني...</p>
+      <p class="status" id="host-status" data-i18n="waiting">Waiting for connection...</p>
       <video id="local-video" autoplay muted playsinline></video>
-      <button id="btn-stop-host" class="btn btn-secondary">إيقاف المشاركة</button>
+      <button id="btn-stop-host" class="btn btn-secondary" data-i18n="stop_sharing">Stop Sharing</button>
     </section>
 
     <!-- شاشة المشاهد -->
     <section id="viewer-screen" class="screen">
-      <h1>أنت الجهاز اللي بدو يشوف</h1>
+      <h1 data-i18n="viewer_screen_title">You are watching</h1>
 
       <div id="join-section">
-        <p>أدخل الكود المكوّن من 6 أرقام:</p>
+        <p data-i18n="enter_code">Enter the 6-digit code:</p>
         <input type="text" id="code-input" maxlength="6" inputmode="numeric"
                placeholder="000000" class="code-input" autocomplete="off">
-        <button id="btn-connect" class="btn">اتصال</button>
+        <button id="btn-connect" class="btn" data-i18n="connect_btn">Connect</button>
       </div>
 
       <div id="video-section" class="hidden">
         <video id="remote-video" autoplay playsinline></video>
-        <button id="btn-back" class="btn btn-secondary">قطع الاتصال</button>
+        <button id="btn-back" class="btn btn-secondary" data-i18n="disconnect">Disconnect</button>
       </div>
 
       <p class="status" id="status"></p>
