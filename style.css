@@ -26,9 +26,7 @@ body {
   overflow: hidden; 
 }
 
-/* =========================================
-   Splash Screen (Clean & Horizontal)
-   ========================================= */
+/* Splash Screen */
 #splash-screen {
   position: fixed; inset: 0; background: var(--bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -67,9 +65,7 @@ body {
 .creator { color: var(--text-dim); letter-spacing: 4px; font-size: 14px; font-weight: 600; margin-top: 20px; }
 .btn-continue { padding: 12px 40px; font-size: 18px; border-radius: 30px; animation: fadeIn 0.5s ease; }
 
-/* =========================================
-   App Layout
-   ========================================= */
+/* App Layout */
 .app { width: 100%; max-width: 900px; position: relative; }
 .hidden { display: none !important; }
 
@@ -117,10 +113,23 @@ h1 { font-size: clamp(24px, 5vw, 36px); text-align: center; font-weight: 700; co
 video, img { width: 100%; background: #000; border-radius: 12px; border: 1px solid var(--border); object-fit: contain; }
 #remote-video { max-height: 50vh; }
 #local-video  { max-height: 200px; margin-top: 8px; }
+#compat-image { max-height: 50vh; }
 #received-video { max-height: 40vh; margin-top: 10px; }
 #received-image { max-height: 40vh; margin-top: 10px; background: var(--bg-2); object-fit: contain; }
 
 #join-section, #video-section, #received-media-container { display: flex; flex-direction: column; gap: 16px; }
+
+/* Toggle Switch (Compatibility Mode) */
+.compat-toggle-container { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; background: var(--bg-2); padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); }
+.compat-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-3); transition: .4s; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
+input:checked + .slider { background-color: var(--accent); }
+input:checked + .slider:before { transform: translateX(24px); }
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
 
 /* Success Toast */
 .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; animation: slideDown 0.5s ease forwards; }
